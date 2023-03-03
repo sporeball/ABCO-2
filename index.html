@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>ABCO-2</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/kell/dist/kell.min.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+    <div class="flex">
+      <div id="editor_container">
+      </div>
+      <div id="emulator_container">
+        <div id="canvas_container">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div id="console_container">
+        </div>
+      </div>
+    </div>
+  </body>
+  <script src="https://unpkg.com/kell"></script>
+  <script>const editor = kell('editor', document.getElementById('editor_container'))</script>
+</html>
