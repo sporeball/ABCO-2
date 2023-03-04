@@ -8,6 +8,8 @@ import parse from './parser.js';
 // import * as Assembler from './index.js';
 
 const editor = document.getElementById('editor');
+const canvas = document.getElementById('canvas');
+const ctx = document.getElementById('canvas').getContext('2d');
 let timeout;
 
 function assembler () {
@@ -96,40 +98,61 @@ function assembler () {
   }
 
   // finished
-  // pad with null bytes until 32K
+  // pad with null bytes
   window.ASM.bytes += String.fromCharCode(0x00)
-    .repeat(65536 - window.ASM.bytes.length);
+    .repeat(0x100FF - window.ASM.bytes.length);
 }
 
-/**
- * evaluate an abcout command
- * @param {object} ASTNode
- */
-function abcout (ASTNode) {
-  let { args } = ASTNode;
-  // count args
-  if (args.length < 2) {
-    throw new Error(`expected at least 2 args, got ${args.length}`);
+function simulator () {
+  canvas.width = 256;
+  // const user = Array(65791).fill(0);
+  const user = [...window.ASM.bytes].map(b => b.charCodeAt(0));
+  let ptr = 0;
+
+  for (let i = 0; i < 1000; i++) {
+    if (ptr === 65529) {
+      break;
+    }
+
+    let A = 0;
+    let B = 0;
+    let C = 0;
+
+    A += user[ptr] * 65536;
+    ptr++;
+    A += user[ptr] * 256;
+    ptr++;
+    A += user[ptr];
+    ptr++;
+    B += user[ptr] * 65536;
+    ptr++;
+    B += user[ptr] * 256;
+    ptr++;
+    B += user[ptr];
+    ptr++;
+    C += user[ptr] * 65536;
+    ptr++;
+    C += user[ptr] * 256;
+    ptr++;
+    C += user[ptr];
+
+    // console.log(A, B, C);
+
+    user[A] += user[B];
+    if (user[A] > 255) {
+      user[A] %= 256;
+      ptr = C;
+    } else {
+      ptr++;
+    }
+
+    // screen device
+    if (A === 0x10000) {
+      user[A] = 0;
+      // TODO: 4 colors
+      ctx.fillRect(user[0x10001], user[0x10002], 1, 1);
+    }
   }
-  if (args.length > 3) {
-    throw new Error(`expected at most 3 args, got ${args.length}`);
-  }
-  // get args
-  args = args.map(valueFromASTNode);
-  let [A, B, C] = args;
-  // if the C argument is undefined, default to the address of the next
-  // instruction
-  if (C === undefined) {
-    C = window.ASM.ptr + 6;
-  }
-  // C argument should point to the beginning of an instruction
-  if (C % 6 !== 0) {
-    throw new Error('assembler: invalid branch value');
-  }
-  // write each
-  byteWrite(A, B, C);
-  // point to the next instruction
-  window.ASM.ptr += 6;
 }
 
 /**
@@ -144,15 +167,15 @@ export function genBytecode (ASTNode, macroStart, macroLabels, macroParameters, 
   });
   // console.log('args:', args);
   if (ASTNode.type === 'number') {
-    byteWrite(ASTNode.value);
-    window.ASM.ptr += 2;
+    byteWrite(false, ASTNode.value);
+    window.ASM.ptr += 3;
   }
   else if (ASTNode.head === 'abcout') {
-    byteWrite(...args);
+    byteWrite(true, ...args);
     if (args.length === 2) {
-      byteWrite(window.ASM.ptr + 6);
+      byteWrite(true, window.ASM.ptr + 9);
     }
-    window.ASM.ptr += 6;
+    window.ASM.ptr += 9;
   } else {
     const macro = window.ASM.macros[ASTNode.head];
     macro.uses++;
@@ -224,9 +247,17 @@ function argNodeToValue (arg, macroStart, macroLabels, macroParameters, macroNam
 
 export function nodeLength (ASTNode) {
   switch (ASTNode.type) {
+    case 'number':
+      if (ASTNode.value > 65535) {
+        return 3;
+      }
+      if (ASTNode.value > 255) {
+        return 2;
+      }
+      return 1;
     case 'command':
       if (ASTNode.head === 'abcout') {
-        return 6;
+        return 9;
       }
       const macro = window.ASM.macros[ASTNode.head];
       if (macro === undefined) {
@@ -240,13 +271,23 @@ export function nodeLength (ASTNode) {
   }
 }
 
-function byteWrite (...values) {
+function byteWrite (nulls, ...values) {
   for (const value of values) {
-    if (value > 255) {
+    if (value > 65535) {
+      window.ASM.bytes += String.fromCharCode(value >> 16);
+      window.ASM.bytes += String.fromCharCode((value & ~(0xFF0000)) >> 8);
+      window.ASM.bytes += String.fromCharCode(value & 255); // lower 8 bits
+    } else if (value > 255) {
+      if (nulls) {
+        window.ASM.bytes += String.fromCharCode(0x00);
+      }
       window.ASM.bytes += String.fromCharCode(value >> 8); // upper 8 bits
       window.ASM.bytes += String.fromCharCode(value & 255); // lower 8 bits
     } else {
-      window.ASM.bytes += String.fromCharCode(0x00);
+      if (nulls) {
+        window.ASM.bytes += String.fromCharCode(0x00);
+        window.ASM.bytes += String.fromCharCode(0x00);
+      }
       window.ASM.bytes += String.fromCharCode(value);
     }
   }
@@ -258,6 +299,7 @@ editor.oninput = function () {
   timeout = window.setTimeout(function () {
     try {
       assembler();
+      simulator();
     } catch (e) {
       // TODO: use the custom log
       console.log(e);
