@@ -48,7 +48,9 @@ body {
 #console_container {
   width:100%;
   height:60px;
-  background-color:#111
+  background-color:#111;
+  color:#eee;
+  overflow-y:auto
 }
 
 #canvas {
