@@ -114,6 +114,7 @@ function parseMacroDefinition (tokens) {
   contents = contents.filter(token => token.type !== 'newline');
   if (!contents.every(token => {
     return (
+      token.type === 'number' ||
       token.type === 'command' ||
       token.type === 'macroLabelDefinition'
     );

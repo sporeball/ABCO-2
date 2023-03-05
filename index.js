@@ -105,11 +105,12 @@ function assembler () {
 
 function simulator () {
   canvas.width = 256;
+  canvas.height = 192;
   // const user = Array(65791).fill(0);
   const user = [...window.ASM.bytes].map(b => b.charCodeAt(0));
   let ptr = 0;
 
-  for (let i = 0; i < 1000; i++) {
+  for (let i = 0; i < 10000; i++) {
     if (ptr === 65529) {
       break;
     }
@@ -148,8 +149,18 @@ function simulator () {
 
     // screen device
     if (A === 0x10000) {
-      user[A] = 0;
+      user[0x10000] = 0;
       // TODO: 4 colors
+      switch (user[0x10003]) {
+        case 0:
+          ctx.fillStyle = '#fff';
+          break;
+        case 1:
+          ctx.fillStyle = '#000';
+          break;
+        default:
+          ctx.fillStyle = '#000';
+      }
       ctx.fillRect(user[0x10001], user[0x10002], 1, 1);
     }
   }

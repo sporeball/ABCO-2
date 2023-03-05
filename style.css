@@ -57,5 +57,5 @@ body {
   width:256px;
   height:192px;
   background-color:white;
-  image-rendering:pixelated
+  /* image-rendering:pixelated */
 }
