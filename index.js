@@ -110,7 +110,7 @@ function simulator () {
   const user = [...window.ASM.bytes].map(b => b.charCodeAt(0));
   let ptr = 0;
 
-  for (let i = 0; i < 10000; i++) {
+  for (let i = 0; i < 250000000; i++) {
     if (ptr === 65529) {
       break;
     }
