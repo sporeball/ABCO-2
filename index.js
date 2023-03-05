@@ -137,6 +137,10 @@ function simulator () {
     ptr++;
     C += user[ptr];
 
+    if (C === 65535) {
+      break;
+    }
+
     // console.log(A, B, C);
 
     user[A] += user[B];
